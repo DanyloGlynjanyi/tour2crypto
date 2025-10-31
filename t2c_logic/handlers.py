@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 from decimal import Decimal, ROUND_DOWN
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
 from t2c_contracts.factories import CashbackLedgerEntryFactory
 from t2c_contracts.ledger import compute_wallet_balance
 from t2c_contracts.validation import CashbackLedgerEntryModel, WalletModel
+from t2c_rules import assert_invariants
 
 TWOPLACES = Decimal("0.01")
 DEFAULT_CASHBACK_AMOUNT = Decimal("10.00")
@@ -19,6 +20,7 @@ ledger_entries: List[CashbackLedgerEntryModel] = []
 ledger_by_reference: Dict[str, CashbackLedgerEntryModel] = {}
 withdrawal_locks: Dict[str, Decimal] = {}
 trip_rewards: Dict[str, Decimal] = {}
+rules_ledger: List[Dict[str, Any]] = []
 
 _ledger_factory = CashbackLedgerEntryFactory()
 
@@ -75,12 +77,12 @@ def _record_ledger_entry(
     reference: str,
     description: str | None = None,
     trip_id: str | None = None,
-) -> CashbackLedgerEntryModel:
+) -> Tuple[CashbackLedgerEntryModel, bool]:
     if wallet_id not in wallets:
         raise KeyError(f"Wallet {wallet_id} is not registered")
 
     if reference in ledger_by_reference:
-        return ledger_by_reference[reference]
+        return ledger_by_reference[reference], False
 
     payload = _ledger_factory.build(
         wallet_id=wallet_id,
@@ -94,7 +96,16 @@ def _record_ledger_entry(
     ledger_entries.append(entry)
     ledger_by_reference[reference] = entry
     update_wallet_balance(wallet_id)
-    return entry
+    return entry, True
+
+
+def _add_rule_entry(entry: Dict[str, Any]) -> None:
+    rules_ledger.append(entry)
+    try:
+        assert_invariants(rules_ledger)
+    except ValueError:
+        rules_ledger.pop()
+        raise
 
 
 def make_cashback_entry(
@@ -107,7 +118,7 @@ def make_cashback_entry(
 ) -> CashbackLedgerEntryModel:
     """Create a cashback ledger entry and update the wallet balance."""
 
-    return _record_ledger_entry(
+    entry, created = _record_ledger_entry(
         wallet_id=wallet_id,
         trip_id=trip_id,
         amount=amount,
@@ -115,6 +126,17 @@ def make_cashback_entry(
         reference=reference,
         description=description or f"Cashback for trip {trip_id}",
     )
+    if created:
+        _add_rule_entry(
+            {
+                "type": "cashback_accrual",
+                "wallet_id": wallet_id,
+                "trip_id": trip_id,
+                "amount": _amount_to_str(amount),
+                "direction": "credit",
+            }
+        )
+    return entry
 
 
 def handle_trip_completed(event: Dict[str, Any]) -> None:
@@ -141,7 +163,7 @@ def handle_withdrawal_requested(event: Dict[str, Any]) -> None:
     amount = _quantize(Decimal(payload["amount"]))
     withdrawal_locks[request_id] = amount
 
-    _record_ledger_entry(
+    _, created = _record_ledger_entry(
         wallet_id=wallet_id,
         amount=-amount,
         entry_type="adjustment",
@@ -149,6 +171,16 @@ def handle_withdrawal_requested(event: Dict[str, Any]) -> None:
         description=f"Withdrawal lock {request_id}",
         trip_id=payload.get("trip_id"),
     )
+    if created:
+        _add_rule_entry(
+            {
+                "type": "withdrawal_lock",
+                "wallet_id": wallet_id,
+                "amount": _amount_to_str(amount),
+                "direction": "debit",
+                "lock_id": request_id,
+            }
+        )
 
 
 def handle_withdrawal_paid(event: Dict[str, Any]) -> None:
@@ -158,18 +190,15 @@ def handle_withdrawal_paid(event: Dict[str, Any]) -> None:
     amount = _quantize(Decimal(payload["amount"]))
     transaction_id = payload["transaction_id"]
 
-    locked_amount = withdrawal_locks.pop(request_id, Decimal("0.00"))
-    if locked_amount:
-        _record_ledger_entry(
-            wallet_id=wallet_id,
-            amount=locked_amount,
-            entry_type="adjustment",
-            reference=f"{event['event_id']}-unlock",
-            description=f"Release withdrawal lock {request_id}",
-            trip_id=payload.get("trip_id"),
+    locked_amount = withdrawal_locks.get(request_id, Decimal("0.00"))
+    if locked_amount == Decimal("0.00"):
+        raise ValueError(f"Withdrawal request {request_id} has no locked funds")
+    if amount > locked_amount:
+        raise ValueError(
+            f"Withdrawal payout {transaction_id} exceeds locked amount for request {request_id}",
         )
 
-    _record_ledger_entry(
+    _, created = _record_ledger_entry(
         wallet_id=wallet_id,
         amount=-amount,
         entry_type="withdrawal",
@@ -177,6 +206,41 @@ def handle_withdrawal_paid(event: Dict[str, Any]) -> None:
         description=f"Withdrawal payout {transaction_id}",
         trip_id=payload.get("trip_id"),
     )
+    if created:
+        _add_rule_entry(
+            {
+                "type": "payout",
+                "wallet_id": wallet_id,
+                "amount": _amount_to_str(amount),
+                "direction": "debit",
+                "lock_id": request_id,
+            }
+        )
+
+    release_amount = amount
+    remaining = locked_amount - amount
+    if remaining > Decimal("0.00"):
+        withdrawal_locks[request_id] = remaining
+    else:
+        withdrawal_locks.pop(request_id, None)
+
+    _, release_created = _record_ledger_entry(
+        wallet_id=wallet_id,
+        amount=release_amount,
+        entry_type="adjustment",
+        reference=f"{event['event_id']}-release",
+        description=f"Release withdrawal lock {request_id}",
+        trip_id=payload.get("trip_id"),
+    )
+    if release_created:
+        _add_rule_entry(
+            {
+                "type": "withdrawal_release",
+                "wallet_id": wallet_id,
+                "amount": _amount_to_str(release_amount),
+                "lock_id": request_id,
+            }
+        )
 
 
 def reset_state() -> None:
@@ -189,6 +253,7 @@ def reset_state() -> None:
     ledger_by_reference.clear()
     withdrawal_locks.clear()
     trip_rewards.clear()
+    rules_ledger.clear()
 
 
 __all__ = [
@@ -198,6 +263,7 @@ __all__ = [
     "ledger_by_reference",
     "withdrawal_locks",
     "trip_rewards",
+    "rules_ledger",
     "register_wallet",
     "get_wallet_balance",
     "update_wallet_balance",

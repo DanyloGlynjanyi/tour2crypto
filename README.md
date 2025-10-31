@@ -54,6 +54,17 @@ The sample command prints a JSON object with valid payload examples for the core
 - Withdrawal flows first place a temporary adjustment (lock) and then release it before applying the final payout, ensuring
   wallet balances remain ledger-first and idempotent across retries.
 
+## Rules & Invariants
+- `t2c_rules.assert_invariants` guards the ledger after each mutation, enforcing:
+  - **R1** — ledger amounts are string-encoded decimals.
+  - **R2** — directions align with types: cashback accrual → credit, reversal → debit, lock optional, payout → debit.
+  - **R3** — available balance (`credit - debit - locked`) is never negative.
+  - **R4** — payouts cannot exceed previously locked funds.
+  - **R5** — releases never exceed the outstanding lock.
+  - **R6** — cashback reversals never surpass accruals for the same trip.
+  - **R7** — ledger types are restricted to the supported enum.
+- Compute a snapshot with `t2c_rules.compute_available` and validate via `pytest -v tests/test_rules_invariants_ok.py`.
+
 ## Design Notes
 - ULIDs are generated locally from the official character set using pseudo-random data, which is sufficient for tests and fixtures.
 - All balances are computed from ledger entries to enforce ledger-first accounting.

@@ -11,8 +11,10 @@ from t2c_logic import (
     ledger_entries,
     register_wallet,
     reset_state,
+    rules_ledger,
     set_trip_reward,
 )
+from t2c_rules import compute_available
 
 _COUNTER = count()
 _ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
@@ -65,3 +67,7 @@ def test_trip_completed_creates_cashback_entry_and_updates_balance() -> None:
 
     balance = get_wallet_balance(wallet.id)
     assert balance == f"{reward:.2f}"
+    assert len(rules_ledger) == 1
+    rule_entry = rules_ledger[0]
+    assert rule_entry["type"] == "cashback_accrual"
+    assert compute_available(rules_ledger) == reward

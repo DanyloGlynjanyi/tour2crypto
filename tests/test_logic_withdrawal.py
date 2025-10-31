@@ -11,9 +11,11 @@ from t2c_logic import (
     ledger_entries,
     register_wallet,
     reset_state,
+    rules_ledger,
     set_trip_reward,
     withdrawal_locks,
 )
+from t2c_rules import compute_available
 
 _COUNTER = count()
 _ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
@@ -94,18 +96,31 @@ def test_withdrawal_flow_locks_and_pays_out_funds() -> None:
     lock_entry = ledger_entries[1]
     assert lock_entry.entry_type == "adjustment"
     assert lock_entry.amount == f"-{requested_amount:.2f}"
+    assert len(rules_ledger) == 2
+    assert rules_ledger[1]["type"] == "withdrawal_lock"
 
     locked_balance = get_wallet_balance(wallet.id)
     assert locked_balance == f"{cashback_amount - requested_amount:.2f}"
+    assert compute_available(rules_ledger) == cashback_amount - requested_amount
 
     bus.publish(_withdrawal_paid_event(wallet.id, request_id, f"{requested_amount:.2f}"))
 
     assert request_id not in withdrawal_locks
-    # cashback + lock + unlock + payout
+    # cashback + lock + payout + release
     assert len(ledger_entries) == 4
-    payout_entry = ledger_entries[-1]
+    payout_entry = ledger_entries[2]
     assert payout_entry.entry_type == "withdrawal"
     assert payout_entry.amount == f"-{requested_amount:.2f}"
+    release_entry = ledger_entries[3]
+    assert release_entry.entry_type == "adjustment"
+    assert release_entry.amount == f"{requested_amount:.2f}"
+    assert [entry["type"] for entry in rules_ledger] == [
+        "cashback_accrual",
+        "withdrawal_lock",
+        "payout",
+        "withdrawal_release",
+    ]
 
     final_balance = get_wallet_balance(wallet.id)
     assert final_balance == f"{cashback_amount - requested_amount:.2f}"
+    assert compute_available(rules_ledger) == cashback_amount - requested_amount
