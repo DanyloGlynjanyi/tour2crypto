@@ -17,6 +17,9 @@ class IdempotencyStore(Protocol):
     def get(self, event_id: str) -> Dict[str, object] | None:
         """Return the stored payload for the processed event if present."""
 
+    def clear(self) -> None:
+        """Remove all tracked event identifiers."""
+
 
 class InMemoryIdempotencyStore:
     """In-memory implementation of :class:`IdempotencyStore`."""
@@ -32,6 +35,9 @@ class InMemoryIdempotencyStore:
 
     def get(self, event_id: str) -> Dict[str, object] | None:
         return self._store.get(event_id)
+
+    def clear(self) -> None:
+        self._store.clear()
 
 
 __all__ = ["IdempotencyStore", "InMemoryIdempotencyStore"]
