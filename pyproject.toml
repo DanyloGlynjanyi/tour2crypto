@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tour2crypto-contracts"
+version = "0.1.0"
+description = "Tour2Crypto contract schemas, validators, and fixtures"
+authors = [{name = "Tour2Crypto"}]
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "jsonschema",
+  "pydantic",
+  "faker",
+  "pytest",
+]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[project.urls]
+Homepage = "https://example.com/tour2crypto"
+
+[tool.setuptools.packages.find]
+include = ["t2c_contracts"]
+
+[tool.pytest.ini_options]
+addopts = "-q"
