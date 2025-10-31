@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tour2crypto-contracts"
-version = "0.1.0"
-description = "Tour2Crypto contract schemas, validators, and fixtures"
+version = "0.2.0"
+description = "Tour2Crypto contract schemas, event definitions, and fixtures"
 authors = [{name = "Tour2Crypto"}]
 readme = "README.md"
 requires-python = ">=3.11"
@@ -29,7 +29,7 @@ dev = ["pytest"]
 Homepage = "https://example.com/tour2crypto"
 
 [tool.setuptools.packages.find]
-include = ["t2c_contracts"]
+include = ["t2c_contracts", "t2c_events"]
 
 [tool.pytest.ini_options]
 addopts = "-q"
