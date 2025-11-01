@@ -1,0 +1,16 @@
+{
+  "application_created": "application_created.json",
+  "application_approved": "application_approved.json",
+  "application_rejected": "application_rejected.json",
+  "trip_booked": "trip_booked.json",
+  "trip_completed": "trip_completed.json",
+  "trip_cancelled": "trip_cancelled.json",
+  "ledger_cashback_accrued": "ledger_cashback_accrued.json",
+  "ledger_cashback_reversed": "ledger_cashback_reversed.json",
+  "withdrawal_requested": "withdrawal_requested.json",
+  "withdrawal_locked": "withdrawal_locked.json",
+  "withdrawal_paid": "withdrawal_paid.json",
+  "withdrawal_rejected": "withdrawal_rejected.json",
+  "wallet_frozen": "wallet_frozen.json",
+  "wallet_reactivated": "wallet_reactivated.json"
+}

@@ -1,0 +1,18 @@
+PYTHON ?= python
+
+.PHONY: test sample report db-migrate db-seed
+
+test:
+	$(PYTHON) -m pytest -v
+
+sample:
+	$(PYTHON) -m t2c_contracts.sample
+
+report:
+        $(PYTHON) scripts/e2e_report.py
+
+db-migrate:
+        $(PYTHON) db/migrate.py
+
+db-seed:
+        $(PYTHON) db/seed.py
