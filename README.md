@@ -170,3 +170,23 @@ The sample command prints a JSON object with valid payload examples for the core
   make diag
   ```
   The command writes `reports/diagnostics.md` with findings and recommendations.
+
+## Autonomy Layer
+- Launch the scheduler, pipeline, and self-healing loop (simulation mode by default):
+  ```bash
+  make start-all  # bounded demo run
+  t2c-start
+  # or provide a bounded run
+  python scripts/start_all.py --max-ticks 5
+  ```
+- Jobs executed automatically:
+  - **pipeline** — injects synthetic events and drives the async worker.
+  - **report** — emits Markdown daily summaries via Telegram simulation.
+  - **heartbeat** — refreshes heartbeats and persists metrics history.
+  - **self_heal** — restarts the worker when dead letters accumulate, forces reports when stalled, and warns on missing API activity.
+- Finalise an autonomy snapshot capturing metrics, DB counts, active jobs, and diagnostics:
+  ```bash
+  python scripts/finalize_snapshot.py
+  ```
+  The snapshot is written to `reports/final_snapshot.txt` in JSON for easy archival.
+- Comprehensive state documentation is available in [`docs/SNAPSHOT_V3_5.md`](docs/SNAPSHOT_V3_5.md).

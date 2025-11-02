@@ -76,4 +76,22 @@ def get_int(key: str, default: int) -> int:
         return default
 
 
-__all__ = ["get", "get_bool", "get_int"]
+def get_float(key: str, default: float) -> float:
+    """Return a floating-point configuration value."""
+
+    value = get(key)
+    if value is None:
+        return default
+    try:
+        return float(value)
+    except ValueError:
+        return default
+
+
+def get_seconds(key: str, default: float) -> float:
+    """Return a duration in seconds parsed as float."""
+
+    return get_float(key, default)
+
+
+__all__ = ["get", "get_bool", "get_int", "get_float", "get_seconds"]

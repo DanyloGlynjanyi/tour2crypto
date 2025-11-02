@@ -1,6 +1,7 @@
 PYTHON ?= python
 
-.PHONY: test sample report db-migrate db-seed pipeline-demo bot-simulate api-run sync-export report-daily report-weekly env-example diag
+.PHONY: test sample report db-migrate db-seed pipeline-demo bot-simulate api-run \
+        sync-export report-daily report-weekly env-example diag start-all finalize-snapshot
 
 test:
 	$(PYTHON) -m pytest -v
@@ -40,3 +41,9 @@ env-example:
 
 diag:
 	$(PYTHON) scripts/diag_run.py
+
+start-all:
+	$(PYTHON) scripts/start_all.py --max-ticks 5
+
+finalize-snapshot:
+	$(PYTHON) scripts/finalize_snapshot.py

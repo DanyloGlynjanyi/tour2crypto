@@ -45,6 +45,7 @@ include = [
   "t2c_sync",
   "t2c_core",
   "t2c_diag",
+  "t2c_autonomy",
 ]
 
 [tool.pytest.ini_options]
@@ -53,3 +54,4 @@ addopts = "-q"
 [project.scripts]
 tour2crypto-bot = "t2c_bot.app:main"
 t2c-api = "t2c_api.app:main"
+t2c-start = "t2c_autonomy.orchestrator:start_all"

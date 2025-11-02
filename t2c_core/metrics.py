@@ -14,6 +14,8 @@ _COUNTERS: Dict[str, int] = {
     "reports_sent": 0,
     "api_requests": 0,
     "bot_actions": 0,
+    "heals_attempted": 0,
+    "heals_succeeded": 0,
 }
 
 _HISTORY_LIMIT = 100
