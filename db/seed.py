@@ -8,6 +8,8 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Any, Dict, List
 
+TWOPLACES = Decimal('0.01')
+
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
@@ -303,6 +305,23 @@ def seed() -> None:
     assert_invariants(rules_ledger)
     available = compute_available(rules_ledger)
 
+    with sqlite3.connect(DB_PATH) as connection:
+        connection.row_factory = sqlite3.Row
+        totals_row = connection.execute(
+            "SELECT credit_total, debit_total, locked_total, available_amount FROM wallet_balances WHERE wallet_id = ?",
+            (wallet.id,),
+        ).fetchone()
+
+    credit_total = Decimal(totals_row["credit_total"]).quantize(TWOPLACES)
+    debit_total = Decimal(totals_row["debit_total"]).quantize(TWOPLACES)
+    locked_total = Decimal(totals_row["locked_total"]).quantize(TWOPLACES)
+    available_from_view = Decimal(totals_row["available_amount"]).quantize(TWOPLACES)
+
+    balance_decimal = Decimal(balance).quantize(TWOPLACES)
+    assert available.quantize(TWOPLACES) == available_from_view
+    assert available_from_view == credit_total - debit_total - locked_total
+    assert balance_decimal == available_from_view
+
     print("Applied migrations:")
     for migration in applied:
         print(f"  - {migration.name}")
@@ -312,8 +331,10 @@ def seed() -> None:
     print("  - trips: 1 (completed)")
     print("  - withdrawals: 1 (processed)")
     print("  - ledger entries: 4")
-    print(f"Wallet {wallet.id} balance: {balance}")
-    print(f"Available per invariants: {available:.2f}")
+    print(f"Wallet {wallet.id} balance: {balance_decimal:.2f}")
+    print("Ledger totals (credit/debit/locked/available): "
+          f"{credit_total:.2f} / {debit_total:.2f} / {locked_total:.2f} / {available_from_view:.2f}")
+    print(f"Available per invariants: {available_from_view:.2f}")
 
 
 if __name__ == "__main__":

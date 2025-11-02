@@ -8,6 +8,8 @@ from pathlib import Path
 
 import pytest
 
+TWOPLACES = Decimal('0.01')
+
 from t2c_contracts.ledger import compute_wallet_balance
 from t2c_contracts.validation import (
     ApplicationModel,
@@ -60,11 +62,14 @@ def test_wallet_balance_view_matches_ledger(seeded_db: Path) -> None:
         wallet_id = wallet_row["id"]
 
         view_row = connection.execute(
-            "SELECT available_amount FROM wallet_balances WHERE wallet_id = ?",
+            "SELECT credit_total, debit_total, locked_total, available_amount FROM wallet_balances WHERE wallet_id = ?",
             (wallet_id,),
         ).fetchone()
         assert view_row is not None
-        available_from_view = Decimal(view_row["available_amount"])
+        credit_from_view = Decimal(view_row["credit_total"]).quantize(TWOPLACES)
+        debit_from_view = Decimal(view_row["debit_total"]).quantize(TWOPLACES)
+        locked_from_view = Decimal(view_row["locked_total"]).quantize(TWOPLACES)
+        available_from_view = Decimal(view_row["available_amount"]).quantize(TWOPLACES)
 
         ledger_rows = connection.execute(
             "SELECT * FROM cashback_ledger WHERE wallet_id = ?",
@@ -83,7 +88,40 @@ def test_wallet_balance_view_matches_ledger(seeded_db: Path) -> None:
             )
             for row in ledger_rows
         ]
-        balance = Decimal(compute_wallet_balance(ledger_models))
+        balance = Decimal(compute_wallet_balance(ledger_models)).quantize(TWOPLACES)
+
+        def amount_abs(row: sqlite3.Row) -> Decimal:
+            return abs(Decimal(row["amount"])).quantize(TWOPLACES)
+
+        expected_credit = sum(
+            (amount_abs(row) for row in ledger_rows if row["rule_type"] == "cashback_accrual"),
+            Decimal("0.00"),
+        ).quantize(TWOPLACES)
+        expected_debit = sum(
+            (
+                amount_abs(row)
+                for row in ledger_rows
+                if row["rule_type"] in {"cashback_reversal", "payout"}
+            ),
+            Decimal("0.00"),
+        ).quantize(TWOPLACES)
+        total_locks = sum(
+            (amount_abs(row) for row in ledger_rows if row["rule_type"] == "withdrawal_lock"),
+            Decimal("0.00"),
+        )
+        total_releases = sum(
+            (amount_abs(row) for row in ledger_rows if row["rule_type"] == "withdrawal_release"),
+            Decimal("0.00"),
+        )
+        expected_locked = (total_locks - total_releases).quantize(TWOPLACES)
+        assert expected_locked >= Decimal("0.00")
+
+        expected_available = (expected_credit - expected_debit - expected_locked).quantize(TWOPLACES)
+
+        assert credit_from_view == expected_credit
+        assert debit_from_view == expected_debit
+        assert locked_from_view == expected_locked
+        assert available_from_view == expected_available
         assert balance == available_from_view
 
 

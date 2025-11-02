@@ -90,8 +90,38 @@ CREATE INDEX idx_audit_events_entity ON audit_events (entity_id);
 CREATE INDEX idx_audit_events_created ON audit_events (created_at);
 
 CREATE VIEW wallet_balances AS
+WITH normalized AS (
+    SELECT
+        wallet_id,
+        ABS(amount) AS amount_value,
+        rule_type
+    FROM cashback_ledger
+)
 SELECT
     wallet_id,
-    SUM(amount) AS available_amount
-FROM cashback_ledger
+    ROUND(SUM(CASE WHEN rule_type = 'cashback_accrual' THEN amount_value ELSE 0 END), 2) AS credit_total,
+    ROUND(SUM(CASE WHEN rule_type IN ('cashback_reversal', 'payout') THEN amount_value ELSE 0 END), 2) AS debit_total,
+    ROUND(
+        SUM(
+            CASE
+                WHEN rule_type = 'withdrawal_lock' THEN amount_value
+                WHEN rule_type = 'withdrawal_release' THEN -amount_value
+                ELSE 0
+            END
+        ),
+        2
+    ) AS locked_total,
+    ROUND(
+        SUM(CASE WHEN rule_type = 'cashback_accrual' THEN amount_value ELSE 0 END)
+        - SUM(CASE WHEN rule_type IN ('cashback_reversal', 'payout') THEN amount_value ELSE 0 END)
+        - SUM(
+            CASE
+                WHEN rule_type = 'withdrawal_lock' THEN amount_value
+                WHEN rule_type = 'withdrawal_release' THEN -amount_value
+                ELSE 0
+            END
+        ),
+        2
+    ) AS available_amount
+FROM normalized
 GROUP BY wallet_id;
