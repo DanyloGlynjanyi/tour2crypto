@@ -108,3 +108,29 @@ The sample command prints a JSON object with valid payload examples for the core
   ```
 - The bot wires user and admin routers, reuses the local event pipeline, and prints a summary with the final wallet balance.
 - Offline-only mode: networking is disabled, so the application focuses on deterministic flows that can later be replaced with real polling.
+
+## Web Dashboard API
+- Start the FastAPI service bound to the seeded SQLite database:
+  ```bash
+  make api-run
+  ```
+- The CLI wraps `uvicorn` and exposes endpoints such as:
+  - `GET /health` → service heartbeat.
+  - `GET /wallets/{user_id}/balance` → ledger-first available & locked amounts.
+  - `GET /trips?user_id=...` → traveller trips from SQLite.
+  - `GET /ledger?wallet_id=...` → raw cashback ledger entries.
+  - `GET /reports/daily_summary` → aggregate counts and total available.
+- The root path serves a minimal HTML dashboard for quick inspection.
+
+## Static Dashboard
+- Open [`t2c_api/static/index.html`](t2c_api/static/index.html) in a browser after starting the API.
+- The page is fully self-contained (no CDN) and issues `fetch` calls against `http://127.0.0.1:8000`.
+- Provide a `user_id` or `wallet_id` to load balances, trip history, and ledger snapshots into interactive `<pre>` blocks.
+
+## Supabase Sync (offline)
+- Generate CSV, JSON, and SQL upsert artefacts ready for manual upload:
+  ```bash
+  make sync-export
+  ```
+- Outputs land in `exports/` and include `supabase_upsert.sql` with `INSERT ... ON CONFLICT` statements for all primary tables.
+- The SQL assumes a primary key of `id` on each table (ledger, trips, wallets, applications, withdrawals, audit events) and updates the latest snapshot when run inside Supabase/Postgres.

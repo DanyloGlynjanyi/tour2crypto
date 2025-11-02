@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Tour2Crypto Dashboard</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 2rem;
+        background-color: #f7f7f7;
+      }
+      section {
+        background-color: #ffffff;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+      }
+      h1 {
+        margin-bottom: 0.5rem;
+      }
+      label {
+        display: block;
+        margin-top: 0.75rem;
+      }
+      input {
+        padding: 0.5rem;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+        width: 16rem;
+      }
+      button {
+        margin-top: 0.75rem;
+        padding: 0.5rem 1rem;
+        border: none;
+        border-radius: 4px;
+        background-color: #1f7aec;
+        color: white;
+        cursor: pointer;
+      }
+      button:hover {
+        background-color: #155bb5;
+      }
+      pre {
+        background: #272822;
+        color: #f8f8f2;
+        padding: 1rem;
+        border-radius: 4px;
+        overflow-x: auto;
+      }
+      .summary span {
+        display: inline-block;
+        margin-right: 1rem;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Tour2Crypto Local Dashboard</h1>
+    <p>
+      This simulation page works offline and queries the local FastAPI server at
+      <code>http://127.0.0.1:8000</code>. Fill the fields below to load data.
+    </p>
+
+    <section>
+      <h2>Wallet Balance</h2>
+      <label for="userId">User ID</label>
+      <input id="userId" type="text" placeholder="ULID of user" />
+      <button id="loadBalance">Load Balance</button>
+      <div class="summary" id="balanceSummary"></div>
+    </section>
+
+    <section>
+      <h2>Trips</h2>
+      <label for="tripsUserId">User ID (optional)</label>
+      <input id="tripsUserId" type="text" placeholder="ULID of traveler" />
+      <button id="loadTrips">Load Trips</button>
+      <pre id="tripsOutput">[]</pre>
+    </section>
+
+    <section>
+      <h2>Ledger Entries</h2>
+      <label for="walletId">Wallet ID</label>
+      <input id="walletId" type="text" placeholder="ULID of wallet" />
+      <button id="loadLedger">Load Ledger</button>
+      <pre id="ledgerOutput">[]</pre>
+    </section>
+
+    <script>
+      const apiBase = "http://127.0.0.1:8000";
+
+      async function fetchJson(url) {
+        const response = await fetch(url);
+        if (!response.ok) {
+          throw new Error(`Request failed: ${response.status}`);
+        }
+        return response.json();
+      }
+
+      document.getElementById("loadBalance").addEventListener("click", async () => {
+        const userId = document.getElementById("userId").value.trim();
+        if (!userId) {
+          alert("Please provide a user ID.");
+          return;
+        }
+        try {
+          const data = await fetchJson(`${apiBase}/wallets/${encodeURIComponent(userId)}/balance`);
+          document.getElementById(
+            "balanceSummary"
+          ).innerHTML = `<span>User: <strong>${data.user_id}</strong></span><span>Available: <strong>${data.available}</strong></span><span>Locked: <strong>${data.locked}</strong></span>`;
+        } catch (error) {
+          document.getElementById("balanceSummary").innerText = error.message;
+        }
+      });
+
+      document.getElementById("loadTrips").addEventListener("click", async () => {
+        const userId = document.getElementById("tripsUserId").value.trim();
+        const url = userId ? `${apiBase}/trips?user_id=${encodeURIComponent(userId)}` : `${apiBase}/trips`;
+        try {
+          const data = await fetchJson(url);
+          document.getElementById("tripsOutput").innerText = JSON.stringify(data, null, 2);
+        } catch (error) {
+          document.getElementById("tripsOutput").innerText = error.message;
+        }
+      });
+
+      document.getElementById("loadLedger").addEventListener("click", async () => {
+        const walletId = document.getElementById("walletId").value.trim();
+        if (!walletId) {
+          alert("Please provide a wallet ID.");
+          return;
+        }
+        try {
+          const data = await fetchJson(`${apiBase}/ledger?wallet_id=${encodeURIComponent(walletId)}`);
+          document.getElementById("ledgerOutput").innerText = JSON.stringify(data, null, 2);
+        } catch (error) {
+          document.getElementById("ledgerOutput").innerText = error.message;
+        }
+      });
+    </script>
+  </body>
+</html>
