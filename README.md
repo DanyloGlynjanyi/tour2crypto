@@ -100,3 +100,11 @@ The sample command prints a JSON object with valid payload examples for the core
 - Collectors simulate upstream producers that emit fully validated events, the async queue buffers them, and the worker performs validation, retry with exponential backoff, and dead-letter routing after exhausting attempts.
 - Metrics (`processed_ok`, `retried`, `dead_lettered`) are exposed via `t2c_pipeline.metrics`, and the in-memory dead-letter list can be inspected from the worker instance.
 - This local queue is intentionally lightweight; in production it can be swapped for a dedicated broker while reusing the collector and worker interfaces.
+
+## Telegram Bot Layer (Simulation Mode)
+- Launch the Aiogram-based simulation without contacting Telegram servers:
+  ```bash
+  make bot-simulate
+  ```
+- The bot wires user and admin routers, reuses the local event pipeline, and prints a summary with the final wallet balance.
+- Offline-only mode: networking is disabled, so the application focuses on deterministic flows that can later be replaced with real polling.

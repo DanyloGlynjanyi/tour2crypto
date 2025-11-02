@@ -14,6 +14,7 @@ dependencies = [
   "pydantic",
   "faker",
   "pytest",
+  "aiogram>=3.2",
 ]
 classifiers = [
   "Programming Language :: Python :: 3",
@@ -29,7 +30,10 @@ dev = ["pytest"]
 Homepage = "https://example.com/tour2crypto"
 
 [tool.setuptools.packages.find]
-include = ["t2c_contracts", "t2c_events", "t2c_logic", "t2c_rules", "t2c_pipeline"]
+include = ["t2c_contracts", "t2c_events", "t2c_logic", "t2c_rules", "t2c_pipeline", "t2c_bot"]
 
 [tool.pytest.ini_options]
 addopts = "-q"
+
+[project.scripts]
+tour2crypto-bot = "t2c_bot.app:main"

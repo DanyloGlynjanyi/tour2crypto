@@ -1,6 +1,6 @@
 PYTHON ?= python
 
-.PHONY: test sample report db-migrate db-seed pipeline-demo
+.PHONY: test sample report db-migrate db-seed pipeline-demo bot-simulate
 
 test:
 	$(PYTHON) -m pytest -v
@@ -19,3 +19,6 @@ db-seed:
 
 pipeline-demo:
 	$(PYTHON) scripts/pipeline_demo.py
+
+bot-simulate:
+	$(PYTHON) scripts/bot_simulate.py
