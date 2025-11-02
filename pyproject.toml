@@ -29,7 +29,7 @@ dev = ["pytest"]
 Homepage = "https://example.com/tour2crypto"
 
 [tool.setuptools.packages.find]
-include = ["t2c_contracts", "t2c_events", "t2c_logic", "t2c_rules"]
+include = ["t2c_contracts", "t2c_events", "t2c_logic", "t2c_rules", "t2c_pipeline"]
 
 [tool.pytest.ini_options]
 addopts = "-q"

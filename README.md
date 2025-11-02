@@ -91,3 +91,12 @@ The sample command prints a JSON object with valid payload examples for the core
   ```
 - SQLite DDL lives in [`db/schema_sqlite.sql`](db/schema_sqlite.sql) with matching migrations under [`db/migrations/`](db/migrations/).
 - Supabase/Postgres DDL and RLS examples are available in [`db/schema_supabase.sql`](db/schema_supabase.sql) and [`db/rls_supabase.sql`](db/rls_supabase.sql).
+
+## Event Pipeline (Local)
+- Run the asyncio demo that wires the collector, queue, worker, and business handlers:
+  ```bash
+  python scripts/pipeline_demo.py
+  ```
+- Collectors simulate upstream producers that emit fully validated events, the async queue buffers them, and the worker performs validation, retry with exponential backoff, and dead-letter routing after exhausting attempts.
+- Metrics (`processed_ok`, `retried`, `dead_lettered`) are exposed via `t2c_pipeline.metrics`, and the in-memory dead-letter list can be inspected from the worker instance.
+- This local queue is intentionally lightweight; in production it can be swapped for a dedicated broker while reusing the collector and worker interfaces.
