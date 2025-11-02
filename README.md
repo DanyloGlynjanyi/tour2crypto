@@ -134,3 +134,14 @@ The sample command prints a JSON object with valid payload examples for the core
   ```
 - Outputs land in `exports/` and include `supabase_upsert.sql` with `INSERT ... ON CONFLICT` statements for all primary tables.
 - The SQL assumes a primary key of `id` on each table (ledger, trips, wallets, applications, withdrawals, audit events) and updates the latest snapshot when run inside Supabase/Postgres.
+
+## Automated Reports (Telegram)
+- Emit a daily operations snapshot (simulation mode, prints to stdout):
+  ```bash
+  make report-daily
+  ```
+- Emit a weekly PnL summary with inflow/outflow totals:
+  ```bash
+  make report-weekly
+  ```
+- Reports run entirely offline: the simulation prints the formatted Markdown instead of calling Telegram APIs. Real delivery can be enabled later by providing a live bot token and chat identifier.

@@ -52,6 +52,19 @@ class EventWorker:
             if isinstance(event_id, str):
                 self.store.set(event_id, event)
             metrics.increment_processed_ok()
+            if event.get("event_type") in {"trip_completed", "withdrawal_paid"}:
+                try:
+                    from t2c_reports.generator import (
+                        format_report_md,
+                        generate_daily_report,
+                    )
+                    from t2c_reports.sender import send_report_via_telegram
+
+                    report = generate_daily_report("db/tour2crypto.db")
+                    text = format_report_md(report, "Auto Daily Report (triggered by event)")
+                    send_report_via_telegram(text)
+                except Exception as report_exc:  # noqa: BLE001
+                    envelope["report_error"] = str(report_exc)
         except Exception as exc:  # noqa: BLE001
             envelope["error"] = str(exc)
             envelope["retries"] = envelope.get("retries", 0) + 1

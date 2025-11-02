@@ -11,6 +11,7 @@ class BotConfig:
 
     token: str = "FAKE_TOKEN_FOR_OFFLINE"
     mode: str = "simulation"
+    admin_chat_id: int = 0
 
 
 def get_config() -> BotConfig:

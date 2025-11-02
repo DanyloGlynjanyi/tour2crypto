@@ -41,6 +41,7 @@ include = [
   "t2c_pipeline",
   "t2c_bot",
   "t2c_api",
+  "t2c_reports",
   "t2c_sync",
 ]
 
