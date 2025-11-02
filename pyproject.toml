@@ -43,6 +43,8 @@ include = [
   "t2c_api",
   "t2c_reports",
   "t2c_sync",
+  "t2c_core",
+  "t2c_diag",
 ]
 
 [tool.pytest.ini_options]

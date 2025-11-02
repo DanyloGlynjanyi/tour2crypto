@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import sqlite3
 from pathlib import Path
 from typing import Dict
@@ -29,7 +27,9 @@ def _setup_database(tmp_path: Path) -> Dict[str, str]:
         application_id=application["id"],
         status="completed",
     )
-    withdrawal = WithdrawalRequestFactory().build(wallet_id=wallet["id"], requested_amount="5.00", status="processed")
+    withdrawal = WithdrawalRequestFactory().build(
+        wallet_id=wallet["id"], requested_amount="5.00", status="processed"
+    )
 
     conn.execute(
         "INSERT INTO wallets (id, owner_id, currency, created_at, description) VALUES (?, ?, ?, ?, ?)",
@@ -214,7 +214,9 @@ def test_api_endpoints(tmp_path: Path) -> None:
 
     health = client.get("/health")
     assert health.status_code == 200
-    assert health.json() == {"ok": True}
+    health_payload = health.json()
+    assert health_payload["ok"] is True
+    assert "metrics" in health_payload
 
     balance = client.get(f"/wallets/{context['user_id']}/balance")
     assert balance.status_code == 200
@@ -248,3 +250,9 @@ def test_api_endpoints(tmp_path: Path) -> None:
     assert summary_payload["trips"] == 1
     assert summary_payload["ledger_entries"] == 4
     assert summary_payload["total_available"] == "15.00"
+
+    metrics_response = client.get("/metrics")
+    assert metrics_response.status_code == 200
+    metrics_payload = metrics_response.json()
+    # We made six endpoint calls above; api_requests counter should reflect at least that many
+    assert metrics_payload["api_requests"] >= 6

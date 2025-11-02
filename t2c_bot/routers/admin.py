@@ -7,6 +7,8 @@ from decimal import Decimal
 from aiogram import Router
 from aiogram.types import Message
 
+from t2c_core import metrics as core_metrics
+from t2c_core.logging import get_logger
 from t2c_contracts.factories import TripFactory
 from t2c_logic.handlers import (
     ledger_entries,
@@ -21,6 +23,7 @@ from .. import BotContext
 
 router = Router(name="admin")
 _context: BotContext | None = None
+LOGGER = get_logger(__name__)
 
 
 def setup(context: BotContext) -> Router:
@@ -50,6 +53,8 @@ def _default_wallet_id() -> str | None:
 async def handle_admin(message: Message) -> None:
     """Display ledger counters and metrics."""
 
+    core_metrics.inc("bot_actions")
+    LOGGER.info("Admin opened dashboard")
     wallet_count = len(wallets)
     ledger_count = len(ledger_entries)
     rule_events = len(rules_ledger)
@@ -71,6 +76,8 @@ async def handle_admin(message: Message) -> None:
 async def handle_trip_completed_simulation(message: Message) -> None:
     """Trigger cashback accrual for a synthetic trip."""
 
+    core_metrics.inc("bot_actions")
+    LOGGER.info("Admin triggered trip_completed simulation")
     if _context is None:
         await message.answer("Контекст недоступний.")
         return
@@ -97,6 +104,8 @@ async def handle_trip_completed_simulation(message: Message) -> None:
 async def handle_dead_letters(message: Message) -> None:
     """List dead-lettered events accumulated by the worker."""
 
+    core_metrics.inc("bot_actions")
+    LOGGER.info("Admin requested dead-letter list")
     if _context is None:
         await message.answer("Контекст недоступний.")
         return
@@ -119,6 +128,8 @@ async def handle_dead_letters(message: Message) -> None:
 async def handle_payout_simulation(message: Message) -> None:
     """Simulate paying out the most recent withdrawal request."""
 
+    core_metrics.inc("bot_actions")
+    LOGGER.info("Admin triggered payout simulation")
     if _context is None:
         await message.answer("Контекст недоступний.")
         return

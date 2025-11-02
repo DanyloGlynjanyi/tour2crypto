@@ -120,6 +120,7 @@ The sample command prints a JSON object with valid payload examples for the core
   - `GET /trips?user_id=...` → traveller trips from SQLite.
   - `GET /ledger?wallet_id=...` → raw cashback ledger entries.
   - `GET /reports/daily_summary` → aggregate counts and total available.
+  - `GET /metrics` → live counters derived from the shared monitoring layer.
 - The root path serves a minimal HTML dashboard for quick inspection.
 
 ## Static Dashboard
@@ -145,3 +146,27 @@ The sample command prints a JSON object with valid payload examples for the core
   make report-weekly
   ```
 - Reports run entirely offline: the simulation prints the formatted Markdown instead of calling Telegram APIs. Real delivery can be enabled later by providing a live bot token and chat identifier.
+
+
+## Configuration (.env)
+- Bootstrap a local environment file (defaults come from `example.env`):
+  ```bash
+  make env-example
+  ```
+- Settings are read in priority order: OS environment variables → `.env` → `example.env`.
+- Key fields include `MODE`, `DB_PATH`, `BOT_TOKEN`, log destinations, and Supabase placeholders for future connectivity.
+
+## Monitoring & Diagnostics
+- Every component logs via `t2c_core.logging` with output streamed to stdout and `logs/t2c.log`.
+- Metrics counters (events, reports, API calls, bot actions) live in `t2c_core.metrics` and are persisted to `logs/metrics.json`.
+- Heartbeats update `logs/heartbeat.txt`; query health data via:
+  ```bash
+  curl http://127.0.0.1:8000/health
+  ```
+  or programmatically: `python -c "from t2c_core.health import healthcheck; print(healthcheck())"`
+- Dump the current metrics snapshot through the API (`/metrics`) or locally: `python -c "from t2c_core.metrics import snapshot; print(snapshot())"`.
+- Run offline diagnostics that analyse logs, metrics, and heuristics:
+  ```bash
+  make diag
+  ```
+  The command writes `reports/diagnostics.md` with findings and recommendations.

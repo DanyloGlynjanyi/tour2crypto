@@ -8,6 +8,8 @@ from typing import Set
 from aiogram import Router
 from aiogram.types import Message
 
+from t2c_core import metrics as core_metrics
+from t2c_core.logging import get_logger
 from t2c_logic.handlers import get_wallet_balance, ledger_entries, wallets
 from t2c_pipeline.collector import collect_withdrawal_requested
 
@@ -15,6 +17,7 @@ from .. import BotContext
 
 router = Router(name="user")
 _context: BotContext | None = None
+LOGGER = get_logger(__name__)
 
 
 def setup(context: BotContext) -> Router:
@@ -60,6 +63,8 @@ async def _drain_queue() -> None:
 async def handle_start(message: Message) -> None:
     """Greet the user and highlight available actions."""
 
+    core_metrics.inc("bot_actions")
+    LOGGER.info("User invoked /start")
     await message.answer(
         "Вітаємо у Tour2Crypto! Виберіть опцію: \n"
         "• Мій баланс\n"
@@ -71,6 +76,8 @@ async def handle_start(message: Message) -> None:
 async def handle_balance(message: Message) -> None:
     """Display cached balance, cashback total, and trip count."""
 
+    core_metrics.inc("bot_actions")
+    LOGGER.info("User requested balance")
     wallet = _first_wallet()
     if wallet is None:
         await message.answer("Гаманець поки не створено у системі.")
@@ -91,6 +98,8 @@ async def handle_balance(message: Message) -> None:
 async def handle_withdrawal_request(message: Message) -> None:
     """Simulate a withdrawal request via the event pipeline."""
 
+    core_metrics.inc("bot_actions")
+    LOGGER.info("User requested withdrawal simulation")
     if _context is None:
         await message.answer("Пайплайн недоступний у цьому режимі.")
         return

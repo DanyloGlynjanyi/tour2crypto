@@ -4,10 +4,13 @@ from __future__ import annotations
 
 import asyncio
 
+from t2c_core.logging import get_logger
 from t2c_logic.handlers import get_wallet_balance, wallet_balances
 
 from . import BotApp, create_bot_app
 from .config import get_config
+
+LOGGER = get_logger(__name__)
 
 
 async def _run_pipeline_demo() -> None:
@@ -29,6 +32,7 @@ def main() -> str:
     """Launch the bot in simulation mode and return a status string."""
 
     config = get_config()
+    LOGGER.info("Starting bot in %s mode", config.mode)
     app = create_bot_app(config)
 
     if config.mode == "simulation":
@@ -38,9 +42,10 @@ def main() -> str:
         print(message)
         print("Registered routers:", len(app.routers))
         print("Final available balance:", final_balance)
+        LOGGER.info("Simulation completed with balance %s", final_balance)
         return message
 
-    # Placeholder for future interactive modes.
+    LOGGER.info("Bot ready without polling in offline environment")
     print("BOT READY (no polling in offline environment)")
     return "BOT READY"
 

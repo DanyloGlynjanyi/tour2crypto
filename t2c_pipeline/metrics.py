@@ -4,39 +4,32 @@ from __future__ import annotations
 
 from typing import Dict
 
-_processed_ok = 0
-_retried = 0
-_dead_lettered = 0
+from t2c_core import metrics as core_metrics
 
 
 def increment_processed_ok() -> None:
-    global _processed_ok
-    _processed_ok += 1
+    core_metrics.inc("events_processed")
 
 
 def increment_retried() -> None:
-    global _retried
-    _retried += 1
+    core_metrics.inc("events_retried")
 
 
 def increment_dead_lettered() -> None:
-    global _dead_lettered
-    _dead_lettered += 1
+    core_metrics.inc("events_deadletter")
 
 
 def snapshot() -> Dict[str, int]:
+    counters = core_metrics.snapshot()
     return {
-        "processed_ok": _processed_ok,
-        "retried": _retried,
-        "dead_lettered": _dead_lettered,
+        "processed_ok": counters.get("events_processed", 0),
+        "retried": counters.get("events_retried", 0),
+        "dead_lettered": counters.get("events_deadletter", 0),
     }
 
 
 def reset_metrics() -> None:
-    global _processed_ok, _retried, _dead_lettered
-    _processed_ok = 0
-    _retried = 0
-    _dead_lettered = 0
+    core_metrics.reset()
 
 
 __all__ = [

@@ -1,6 +1,6 @@
 PYTHON ?= python
 
-.PHONY: test sample report db-migrate db-seed pipeline-demo bot-simulate api-run sync-export report-daily report-weekly
+.PHONY: test sample report db-migrate db-seed pipeline-demo bot-simulate api-run sync-export report-daily report-weekly env-example diag
 
 test:
 	$(PYTHON) -m pytest -v
@@ -34,3 +34,9 @@ report-daily:
 
 report-weekly:
 	$(PYTHON) scripts/report_weekly_pnl.py
+
+env-example:
+	$(PYTHON) scripts/make_env.py
+
+diag:
+	$(PYTHON) scripts/diag_run.py
